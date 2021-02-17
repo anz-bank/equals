@@ -16,7 +16,7 @@ func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
 	g := reflect.ValueOf(got)
 	switch w.Type().Kind() {
 	case reflect.Array, reflect.Slice:
-		require.ElementsMatch(t, want, got)
+		ElementsMatch(t, want, got)
 	case reflect.Struct:
 		for i := 0; i < w.NumField(); i++ {
 			ElementsMatchRec(t, w.Field(i).Interface(), g.Field(i).Interface())
@@ -26,7 +26,7 @@ func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
 			ElementsMatchRec(t, w.Elem().Field(i).Interface(), g.Elem().Field(i).Interface())
 		}
 	default:
-		require.Equal(t, want, got)
+		equalJson(t, want, got)
 	}
 }
 
@@ -80,7 +80,7 @@ func ObjectsAreEqual(expected, actual interface{}) bool {
 
 	exp, ok := expected.([]byte)
 	if !ok {
-		return AssertEqual(expected, actual)
+		return equalJson(expected, actual)
 	}
 
 	act, ok := actual.([]byte)
@@ -110,8 +110,17 @@ func JSONEq(expected string, actual string, msgAndArgs ...interface{}) bool {
 	return true
 }
 
-/* AssertEqual is a function that checks two dereferenced proto objects because require.Equal infinite loops */
-func AssertEqual(want interface{}, got interface{}) bool {
+/* AssertJson is a function that checks two dereferenced proto objects because require.Equal infinite loops */
+func AssertJson(t *testing.T, want interface{}, got interface{}) {
+	expectJson, err := json.Marshal(want)
+	require.NoError(t, err)
+	gotJson, err := json.Marshal(got)
+	require.NoError(t, err)
+	require.JSONEq(t, string(expectJson), string(gotJson))
+}
+
+/* equalJson is a function that checks two dereferenced proto objects because require.Equal infinite loops */
+func equalJson(want interface{}, got interface{}) bool {
 	expectJson, err := json.Marshal(want)
 	if err != nil {
 		return false
