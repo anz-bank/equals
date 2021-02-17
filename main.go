@@ -26,7 +26,7 @@ func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
 			ElementsMatchRec(t, w.Elem().Field(i).Interface(), g.Elem().Field(i).Interface())
 		}
 	default:
-		equalJson(t, want, got)
+		AssertJson(t, want, got)
 	}
 }
 
