@@ -1,8 +1,6 @@
-package main
+package equals
 
 import (
-	"github.com/stretchr/testify/require"
-	"reflect"
 	"testing"
 )
 
