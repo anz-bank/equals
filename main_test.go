@@ -44,3 +44,16 @@ func TestStructArray(t *testing.T) {
 	}
 	ElementsMatchRec(t, Foo{A: Bar{Arr: []Foobar{{1}, {2}, {3}}}}, Foo{A: Bar{Arr: []Foobar{{2}, {1}, {3}}}})
 }
+
+func TestStructArray2(t *testing.T) {
+	type Foobar struct {
+		I int
+	}
+	type Bar struct {
+		Arr []Foobar
+	}
+	type Foo struct {
+		A Bar
+	}
+	ElementsMatchRec(t, Foo{A: Bar{Arr: []Foobar{{I: 1}, {I: 2}, {I: 3}}}}, Foo{A: Bar{Arr: []Foobar{{I: 2}, {I: 1}, {I: 3}}}})
+}

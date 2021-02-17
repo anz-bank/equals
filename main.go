@@ -22,8 +22,17 @@ func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
 			ElementsMatchRec(t, w.Field(i).Interface(), g.Field(i).Interface())
 		}
 	case reflect.Ptr:
+		if w.IsNil() {
+			require.True(t, g.IsNil())
+			break
+		}
 		for i := 0; i < w.Elem().NumField(); i++ {
-			ElementsMatchRec(t, w.Elem().Field(i).Interface(), g.Elem().Field(i).Interface())
+			a := w.Elem().Field(i)
+			b := g.Elem().Field(i)
+			if !b.CanInterface() || !a.CanInterface() {
+				continue
+			}
+			ElementsMatchRec(t, a.Interface(), b.Interface())
 		}
 	default:
 		AssertJson(t, want, got)
