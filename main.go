@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"testing"
 )
+
 func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
 	w := reflect.ValueOf(want)
 	g := reflect.ValueOf(got)
@@ -28,6 +29,7 @@ func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
 		require.Equal(t, want, got)
 	}
 }
+
 // diffLists diffs two arrays/slices and returns slices of elements that are only in A and only in B.
 // If some element is present multiple times, each instance is counted separately (e.g. if something is 2x in A and
 // 5x in B, it will be 0x in extraA and 3x in extraB). The order of items in both lists is ignored.
