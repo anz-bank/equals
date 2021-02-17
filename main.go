@@ -104,7 +104,7 @@ func ObjectsAreEqual(expected, actual interface{}) bool {
 
 // JSONEq asserts that two JSON strings are equivalent.
 //
-//  assert.JSONEq(t, `{"hello": "world", "foo": "bar"}`, `{"foo": "bar", "hello": "world"}`)
+//  require.JSONEq(t, `{"hello": "world", "foo": "bar"}`, `{"foo": "bar", "hello": "world"}`)
 func JSONEq(expected string, actual string, msgAndArgs ...interface{}) bool {
 	var expectedJSONAsInterface, actualJSONAsInterface interface{}
 
@@ -145,8 +145,8 @@ func equalJson(want interface{}, got interface{}) bool {
 // listB(array, slice...) ignoring the order of the elements. If there are duplicate elements,
 // the number of appearances of each of them in both lists should match.
 //
-// assert.ElementsMatch(t, [1, 3, 2, 3], [1, 3, 3, 2])
-func ElementsMatch(t assert.TestingT, listA, listB interface{}, msgAndArgs ...interface{}) (ok bool) {
+// require.ElementsMatch(t, [1, 3, 2, 3], [1, 3, 3, 2])
+func ElementsMatch(t require.TestingT, listA, listB interface{}, msgAndArgs ...interface{}) (ok bool) {
 	if isEmpty(listA) && isEmpty(listB) {
 		return true
 	}
@@ -193,7 +193,7 @@ func isEmpty(object interface{}) bool {
 }
 
 // isList checks that the provided value is array or slice.
-func isList(t assert.TestingT, list interface{}, msgAndArgs ...interface{}) (ok bool) {
+func isList(t require.TestingT, list interface{}, msgAndArgs ...interface{}) (ok bool) {
 	kind := reflect.TypeOf(list).Kind()
 	if kind != reflect.Array && kind != reflect.Slice {
 		return assert.Fail(t, fmt.Sprintf("%q has an unsupported type %s, expecting array or slice", list, kind),
