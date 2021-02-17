@@ -6,9 +6,28 @@ import (
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"reflect"
+	"testing"
 )
-
+func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
+	w := reflect.ValueOf(want)
+	g := reflect.ValueOf(got)
+	switch w.Type().Kind() {
+	case reflect.Array, reflect.Slice:
+		require.ElementsMatch(t, want, got)
+	case reflect.Struct:
+		for i := 0; i < w.NumField(); i++ {
+			ElementsMatchRec(t, w.Field(i).Interface(), g.Field(i).Interface())
+		}
+	case reflect.Ptr:
+		for i := 0; i < w.Elem().NumField(); i++ {
+			ElementsMatchRec(t, w.Elem().Field(i).Interface(), g.Elem().Field(i).Interface())
+		}
+	default:
+		require.Equal(t, want, got)
+	}
+}
 // diffLists diffs two arrays/slices and returns slices of elements that are only in A and only in B.
 // If some element is present multiple times, each instance is counted separately (e.g. if something is 2x in A and
 // 5x in B, it will be 0x in extraA and 3x in extraB). The order of items in both lists is ignored.
