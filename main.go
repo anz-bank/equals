@@ -11,6 +11,15 @@ import (
 	"testing"
 )
 
+/* AssertJson is a function that checks two dereferenced proto objects because require.Equal infinite loops */
+func AssertJson(t *testing.T, want interface{}, got interface{}) {
+	expectJson, err := json.Marshal(want)
+	require.NoError(t, err)
+	gotJson, err := json.Marshal(got)
+	require.NoError(t, err)
+	require.JSONEq(t, string(expectJson), string(gotJson))
+}
+
 func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
 	w := reflect.ValueOf(want)
 	g := reflect.ValueOf(got)
@@ -39,108 +48,6 @@ func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
 	}
 }
 
-// diffLists diffs two arrays/slices and returns slices of elements that are only in A and only in B.
-// If some element is present multiple times, each instance is counted separately (e.g. if something is 2x in A and
-// 5x in B, it will be 0x in extraA and 3x in extraB). The order of items in both lists is ignored.
-func diffLists(listA, listB interface{}) (extraA, extraB []interface{}) {
-	aValue := reflect.ValueOf(listA)
-	bValue := reflect.ValueOf(listB)
-
-	aLen := aValue.Len()
-	bLen := bValue.Len()
-
-	// Mark indexes in bValue that we already used
-	visited := make([]bool, bLen)
-	for i := 0; i < aLen; i++ {
-		element := aValue.Index(i).Interface()
-		found := false
-		for j := 0; j < bLen; j++ {
-			if visited[j] {
-				continue
-			}
-			if ObjectsAreEqual(bValue.Index(j).Interface(), element) {
-				visited[j] = true
-				found = true
-				break
-			}
-		}
-		if !found {
-			extraA = append(extraA, element)
-		}
-	}
-
-	for j := 0; j < bLen; j++ {
-		if visited[j] {
-			continue
-		}
-		extraB = append(extraB, bValue.Index(j).Interface())
-	}
-
-	return
-}
-
-// ObjectsAreEqual determines if two objects are considered equal.
-//
-// This function does no assertion of any kind.
-func ObjectsAreEqual(expected, actual interface{}) bool {
-	if expected == nil || actual == nil {
-		return expected == actual
-	}
-
-	exp, ok := expected.([]byte)
-	if !ok {
-		return equalJson(expected, actual)
-	}
-
-	act, ok := actual.([]byte)
-	if !ok {
-		return false
-	}
-	if exp == nil || act == nil {
-		return exp == nil && act == nil
-	}
-	return bytes.Equal(exp, act)
-}
-
-// JSONEq asserts that two JSON strings are equivalent.
-//
-//  require.JSONEq(t, `{"hello": "world", "foo": "bar"}`, `{"foo": "bar", "hello": "world"}`)
-func JSONEq(expected string, actual string, msgAndArgs ...interface{}) bool {
-	var expectedJSONAsInterface, actualJSONAsInterface interface{}
-
-	if err := json.Unmarshal([]byte(expected), &expectedJSONAsInterface); err != nil {
-		return false
-	}
-
-	if err := json.Unmarshal([]byte(actual), &actualJSONAsInterface); err != nil {
-		return false
-	}
-
-	return true
-}
-
-/* AssertJson is a function that checks two dereferenced proto objects because require.Equal infinite loops */
-func AssertJson(t *testing.T, want interface{}, got interface{}) {
-	expectJson, err := json.Marshal(want)
-	require.NoError(t, err)
-	gotJson, err := json.Marshal(got)
-	require.NoError(t, err)
-	require.JSONEq(t, string(expectJson), string(gotJson))
-}
-
-/* equalJson is a function that checks two dereferenced proto objects because require.Equal infinite loops */
-func equalJson(want interface{}, got interface{}) bool {
-	expectJson, err := json.Marshal(want)
-	if err != nil {
-		return false
-	}
-	gotJson, err := json.Marshal(got)
-	if err != nil {
-		return false
-	}
-	return JSONEq(string(expectJson), string(gotJson))
-}
-
 // ElementsMatch asserts that the specified listA(array, slice...) is equal to specified
 // listB(array, slice...) ignoring the order of the elements. If there are duplicate elements,
 // the number of appearances of each of them in both lists should match.
@@ -162,6 +69,99 @@ func ElementsMatch(t require.TestingT, listA, listB interface{}, msgAndArgs ...i
 	}
 
 	return assert.Fail(t, formatListDiff(listA, listB, extraA, extraB), msgAndArgs...)
+}
+
+// diffLists diffs two arrays/slices and returns slices of elements that are only in A and only in B.
+// If some element is present multiple times, each instance is counted separately (e.g. if something is 2x in A and
+// 5x in B, it will be 0x in extraA and 3x in extraB). The order of items in both lists is ignored.
+func diffLists(listA, listB interface{}) (extraA, extraB []interface{}) {
+	aValue := reflect.ValueOf(listA)
+	bValue := reflect.ValueOf(listB)
+
+	aLen := aValue.Len()
+	bLen := bValue.Len()
+
+	// Mark indexes in bValue that we already used
+	visited := make([]bool, bLen)
+	for i := 0; i < aLen; i++ {
+		element := aValue.Index(i).Interface()
+		found := false
+		for j := 0; j < bLen; j++ {
+			if visited[j] {
+				continue
+			}
+			if objectsAreEqual(bValue.Index(j).Interface(), element) {
+				visited[j] = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			extraA = append(extraA, element)
+		}
+	}
+
+	for j := 0; j < bLen; j++ {
+		if visited[j] {
+			continue
+		}
+		extraB = append(extraB, bValue.Index(j).Interface())
+	}
+
+	return
+}
+
+// objectsAreEqual determines if two objects are considered equal.
+//
+// This function does no assertion of any kind.
+func objectsAreEqual(expected, actual interface{}) bool {
+	if expected == nil || actual == nil {
+		return expected == actual
+	}
+
+	exp, ok := expected.([]byte)
+	if !ok {
+		return equalJson(expected, actual)
+	}
+
+	act, ok := actual.([]byte)
+	if !ok {
+		return false
+	}
+	if exp == nil || act == nil {
+		return exp == nil && act == nil
+	}
+	return bytes.Equal(exp, act)
+}
+
+// jsoneq asserts that two JSON strings are equivalent.
+//
+//  require.JSONEq(t, `{"hello": "world", "foo": "bar"}`, `{"foo": "bar", "hello": "world"}`)
+func jsoneq(expected string, actual string, msgAndArgs ...interface{}) bool {
+	var expectedJSONAsInterface, actualJSONAsInterface interface{}
+
+	if err := json.Unmarshal([]byte(expected), &expectedJSONAsInterface); err != nil {
+		return false
+	}
+
+	if err := json.Unmarshal([]byte(actual), &actualJSONAsInterface); err != nil {
+		return false
+	}
+
+	return true
+}
+
+/* equalJson is a function that checks two dereferenced proto objects because require.Equal infinite loops */
+func equalJson(want interface{}, got interface{}) bool {
+	expectJson, err := json.Marshal(want)
+	if err != nil {
+		return false
+	}
+	gotJson, err := json.Marshal(got)
+	if err != nil {
+		return false
+	}
+	return jsoneq(string(expectJson), string(gotJson))
 }
 
 // isEmpty gets whether the specified object is considered empty or not.
