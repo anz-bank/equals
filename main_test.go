@@ -120,9 +120,7 @@ func TestStructArrayInterface(t *testing.T) {
 	type Foo struct {
 		A Bar
 	}
-	failt := &RequireFail{}
-	ElementsMatchRec(failt,
+	ElementsMatchRec(t,
 		Foo{A: Bar{Arr: []*Foobar{{I: []interface{}{Foobar2{"AA"}}}}}},
 		Foo{A: Bar{Arr: []*Foobar{{I: []interface{}{Foobar1{"AA"}}}}}})
-	require.True(t, failt.HasErrored)
 }
