@@ -23,40 +23,25 @@ func AssertJson(t require.TestingT, want interface{}, got interface{}) bool {
 	return assert.JSONEq(t, string(expectJson), string(gotJson))
 }
 
-func ElementsMatchRec(t require.TestingT, want interface{}, got interface{}) (equal bool) {
+func ElementsMatchRec2(t require.TestingT, want interface{}, got interface{}) (equal bool) {
 	w := reflect.ValueOf(want)
 	g := reflect.ValueOf(got)
 	switch w.Type().Kind() {
 	case reflect.Array, reflect.Slice:
 		return ElementsMatch(t, want, got)
-	case reflect.Struct:
-		for i := 0; i < w.NumField(); i++ {
-			equal = equal || ElementsMatchRec(t, w.Field(i).Interface(), g.Field(i).Interface())
+	case reflect.Map:
+		for _, e := range w.MapKeys() {
+			equal = equal || ElementsMatchRec2(t, w.MapIndex(e).Interface(), g.MapIndex(e).Interface())
 		}
-		return equal
-	case reflect.Ptr:
-		if w.IsNil() {
-			require.True(t, g.IsNil())
-			break
-		}
-		switch reflect.Indirect(w).Kind() {
-		case reflect.Array, reflect.Slice, reflect.Struct:
-			for i := 0; i < w.Elem().NumField(); i++ {
-				a, b := w.Elem().Field(i), g.Elem().Field(i)
-				if a.CanInterface() || b.CanInterface() {
-					equal = equal || ElementsMatchRec(t, a.Interface(), b.Interface())
-				} else {
-					aType := reflect.TypeOf(b)
-					bType := reflect.TypeOf(b)
-					equal = equal || AssertJson(t, aType, bType)
-				}
-			}
-		default:
-			return reflect.DeepEqual(want, got)
-		}
-		return equal
+	default:
+		return AssertJson(t, want, got)
 	}
-	return AssertJson(t, want, got)
+	return equal
+}
+
+func ElementsMatchRec(t require.TestingT, want interface{}, got interface{}) (equal bool) {
+	var wantj, gotj = interfaceToJson(want, got)
+	return ElementsMatchRec2(t, wantj, gotj)
 }
 
 // ElementsMatch asserts that the specified listA(array, slice...) is equal to specified
@@ -73,7 +58,7 @@ func ElementsMatch(t require.TestingT, listA, listB interface{}, msgAndArgs ...i
 		return false
 	}
 
-	extraA, extraB := diffLists(t, listA, listB)
+	extraA, extraB := diffLists(listA, listB)
 
 	if len(extraA) == 0 && len(extraB) == 0 {
 		return true
@@ -85,7 +70,7 @@ func ElementsMatch(t require.TestingT, listA, listB interface{}, msgAndArgs ...i
 // diffLists diffs two arrays/slices and returns slices of elements that are only in A and only in B.
 // If some element is present multiple times, each instance is counted separately (e.g. if something is 2x in A and
 // 5x in B, it will be 0x in extraA and 3x in extraB). The order of items in both lists is ignored.
-func diffLists(t require.TestingT, listA, listB interface{}) (extraA, extraB []interface{}) {
+func diffLists(listA, listB interface{}) (extraA, extraB []interface{}) {
 	aValue := reflect.ValueOf(listA)
 	bValue := reflect.ValueOf(listB)
 
@@ -176,6 +161,23 @@ func equalJson(want interface{}, got interface{}) bool {
 		return false
 	}
 	return jsoneq(string(expectJson), string(gotJson))
+}
+
+/* equalJson is a function that checks two dereferenced proto objects because require.Equal infinite loops */
+func interfaceToJson(want interface{}, got interface{}) (interface{}, interface{}) {
+	expectJson, _ := json.Marshal(want)
+	gotJson, _ := json.Marshal(got)
+	var expectedJSONAsInterface, actualJSONAsInterface interface{}
+
+	if err := json.Unmarshal(expectJson, &expectedJSONAsInterface); err != nil {
+		return nil, nil
+	}
+
+	if err := json.Unmarshal(gotJson, &actualJSONAsInterface); err != nil {
+		return nil, nil
+	}
+
+	return expectedJSONAsInterface, actualJSONAsInterface
 }
 
 // isEmpty gets whether the specified object is considered empty or not.
