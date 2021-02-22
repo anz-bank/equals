@@ -1,4 +1,4 @@
-module github.com/joshcarp/equals
+module github.com/anz-bank/equals
 
 go 1.15
 
