@@ -41,10 +41,12 @@ func ElementsMatchRec2(t require.TestingT, want interface{}, got interface{}) (e
 					return false
 				}
 			} else {
-				ElementsMatch(t, welem, gelem)
+				if !ElementsMatch(t, welem, gelem) {
+					return false
+				}
 			}
-			return true
 		}
+		return true
 	default:
 		return AssertJson(t, want, got)
 	}
