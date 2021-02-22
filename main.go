@@ -8,11 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"reflect"
-	"testing"
 )
 
 /* AssertJson is a function that checks two dereferenced proto objects because require.Equal infinite loops */
-func AssertJson(t *testing.T, want interface{}, got interface{}) {
+func AssertJson(t require.TestingT, want interface{}, got interface{}) {
 	expectJson, err := json.Marshal(want)
 	require.NoError(t, err)
 	gotJson, err := json.Marshal(got)
@@ -20,7 +19,7 @@ func AssertJson(t *testing.T, want interface{}, got interface{}) {
 	require.JSONEq(t, string(expectJson), string(gotJson))
 }
 
-func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
+func ElementsMatchRec(t require.TestingT, want interface{}, got interface{}) {
 	w := reflect.ValueOf(want)
 	g := reflect.ValueOf(got)
 	switch w.Type().Kind() {
@@ -36,12 +35,15 @@ func ElementsMatchRec(t *testing.T, want interface{}, got interface{}) {
 			break
 		}
 		for i := 0; i < w.Elem().NumField(); i++ {
-			a := w.Elem().Field(i)
-			b := g.Elem().Field(i)
-			if !b.CanInterface() || !a.CanInterface() {
-				continue
+			a, b := w.Elem().Field(i), g.Elem().Field(i)
+			if a.CanInterface() || b.CanInterface() {
+				ElementsMatchRec(t, w.Elem().Field(i).Interface(), g.Elem().Field(i).Interface())
+			} else {
+				aType := reflect.TypeOf(b)
+				bType := reflect.TypeOf(b)
+				//fmt.Println(obj)
+				AssertJson(t, aType, bType)
 			}
-			ElementsMatchRec(t, a.Interface(), b.Interface())
 		}
 	default:
 		AssertJson(t, want, got)
@@ -62,7 +64,7 @@ func ElementsMatch(t require.TestingT, listA, listB interface{}, msgAndArgs ...i
 		return false
 	}
 
-	extraA, extraB := diffLists(listA, listB)
+	extraA, extraB := diffLists(t, listA, listB)
 
 	if len(extraA) == 0 && len(extraB) == 0 {
 		return true
@@ -74,7 +76,7 @@ func ElementsMatch(t require.TestingT, listA, listB interface{}, msgAndArgs ...i
 // diffLists diffs two arrays/slices and returns slices of elements that are only in A and only in B.
 // If some element is present multiple times, each instance is counted separately (e.g. if something is 2x in A and
 // 5x in B, it will be 0x in extraA and 3x in extraB). The order of items in both lists is ignored.
-func diffLists(listA, listB interface{}) (extraA, extraB []interface{}) {
+func diffLists(t require.TestingT, listA, listB interface{}) (extraA, extraB []interface{}) {
 	aValue := reflect.ValueOf(listA)
 	bValue := reflect.ValueOf(listB)
 
@@ -148,7 +150,7 @@ func jsoneq(expected string, actual string, msgAndArgs ...interface{}) bool {
 		return false
 	}
 
-	return true
+	return reflect.DeepEqual(expectedJSONAsInterface, actualJSONAsInterface)
 }
 
 /* equalJson is a function that checks two dereferenced proto objects because require.Equal infinite loops */
