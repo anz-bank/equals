@@ -1,5 +1,18 @@
 package equals
 
+import (
+	"github.com/davecgh/go-spew/spew"
+)
+
+var spewConfig = spew.ConfigState{
+	Indent:                  " ",
+	DisablePointerAddresses: true,
+	DisableCapacities:       true,
+	SortKeys:                true,
+	DisableMethods:          true,
+	MaxDepth:                10,
+}
+
 type RequireFail struct {
 	HasErrored bool
 	HasFailed  bool
