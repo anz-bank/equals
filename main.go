@@ -11,43 +11,52 @@ import (
 )
 
 /* AssertJson is a function that checks two dereferenced proto objects because require.Equal infinite loops */
-func AssertJson(t require.TestingT, want interface{}, got interface{}) {
+func AssertJson(t require.TestingT, want interface{}, got interface{}) bool {
 	expectJson, err := json.Marshal(want)
-	require.NoError(t, err)
+	if !assert.NoError(t, err) {
+		return false
+	}
 	gotJson, err := json.Marshal(got)
-	require.NoError(t, err)
-	require.JSONEq(t, string(expectJson), string(gotJson))
+	if !assert.NoError(t, err) {
+		return false
+	}
+	return assert.JSONEq(t, string(expectJson), string(gotJson))
 }
 
-func ElementsMatchRec(t require.TestingT, want interface{}, got interface{}) {
+func ElementsMatchRec(t require.TestingT, want interface{}, got interface{}) (equal bool) {
 	w := reflect.ValueOf(want)
 	g := reflect.ValueOf(got)
 	switch w.Type().Kind() {
 	case reflect.Array, reflect.Slice:
-		ElementsMatch(t, want, got)
+		return ElementsMatch(t, want, got)
 	case reflect.Struct:
 		for i := 0; i < w.NumField(); i++ {
-			ElementsMatchRec(t, w.Field(i).Interface(), g.Field(i).Interface())
+			equal = equal || ElementsMatchRec(t, w.Field(i).Interface(), g.Field(i).Interface())
 		}
+		return equal
 	case reflect.Ptr:
 		if w.IsNil() {
 			require.True(t, g.IsNil())
 			break
 		}
-		for i := 0; i < w.Elem().NumField(); i++ {
-			a, b := w.Elem().Field(i), g.Elem().Field(i)
-			if a.CanInterface() || b.CanInterface() {
-				ElementsMatchRec(t, w.Elem().Field(i).Interface(), g.Elem().Field(i).Interface())
-			} else {
-				aType := reflect.TypeOf(b)
-				bType := reflect.TypeOf(b)
-				//fmt.Println(obj)
-				AssertJson(t, aType, bType)
+		switch reflect.Indirect(w).Kind() {
+		case reflect.Array, reflect.Slice, reflect.Struct:
+			for i := 0; i < w.Elem().NumField(); i++ {
+				a, b := w.Elem().Field(i), g.Elem().Field(i)
+				if a.CanInterface() || b.CanInterface() {
+					equal = equal || ElementsMatchRec(t, a.Interface(), b.Interface())
+				} else {
+					aType := reflect.TypeOf(b)
+					bType := reflect.TypeOf(b)
+					equal = equal || AssertJson(t, aType, bType)
+				}
 			}
+		default:
+			return reflect.DeepEqual(want, got)
 		}
-	default:
-		AssertJson(t, want, got)
+		return equal
 	}
+	return AssertJson(t, want, got)
 }
 
 // ElementsMatch asserts that the specified listA(array, slice...) is equal to specified
@@ -123,7 +132,10 @@ func objectsAreEqual(expected, actual interface{}) bool {
 
 	exp, ok := expected.([]byte)
 	if !ok {
-		return equalJson(expected, actual)
+		if !equalJson(expected, actual) {
+			return ElementsMatchRec(RequireNull{}, expected, actual)
+		}
+		return true
 	}
 
 	act, ok := actual.([]byte)

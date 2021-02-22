@@ -124,3 +124,92 @@ func TestStructArrayInterface(t *testing.T) {
 		Foo{A: Bar{Arr: []*Foobar{{I: []interface{}{Foobar2{"AA"}}}}}},
 		Foo{A: Bar{Arr: []*Foobar{{I: []interface{}{Foobar1{"AA"}}}}}})
 }
+
+func TestStructArrayInterface2(t *testing.T) {
+	type Foobar1 struct {
+		M interface{}
+	}
+	type Foobar struct {
+		I []interface{}
+	}
+	type Bar struct {
+		Arr []*Foobar
+	}
+	type Foo struct {
+		A Bar
+	}
+	ElementsMatchRec(t,
+		Foo{A: Bar{Arr: []*Foobar{{I: []interface{}{Foobar1{"AA"}}}}}},
+		Foo{A: Bar{Arr: []*Foobar{{I: []interface{}{Foobar1{"AA"}}}}}})
+}
+
+func TestStructArrayInterface3(t *testing.T) {
+	type Foobar1 struct {
+		M *string
+	}
+	type Foobar struct {
+		I []*Foobar1
+	}
+	type Bar struct {
+		Arr []*Foobar
+	}
+	type Foo struct {
+		A Bar
+	}
+	ptr := func(s string) *string {
+		return &s
+	}
+	fail := RequireFail{}
+	ElementsMatchRec(&fail,
+		Foo{A: Bar{Arr: []*Foobar{{I: []*Foobar1{{ptr("A")}, {ptr("B")}}}}}},
+		Foo{A: Bar{Arr: []*Foobar{{I: []*Foobar1{{ptr("A")}, {ptr("C")}}}}}})
+	require.True(t, fail.HasErrored)
+	ElementsMatchRec(t,
+		Foo{A: Bar{Arr: []*Foobar{{I: []*Foobar1{{ptr("A")}, {ptr("B")}}}}}},
+		Foo{A: Bar{Arr: []*Foobar{{I: []*Foobar1{{ptr("A")}, {ptr("B")}}}}}})
+}
+
+func TestStructArrayInterface4(t *testing.T) {
+	type Foobar1 struct {
+		M []string
+	}
+	type Foobar struct {
+		I []*Foobar1
+	}
+	type Bar struct {
+		Arr []*Foobar
+	}
+	type Foo struct {
+		A Bar
+	}
+	ElementsMatchRec(t,
+		Foo{A: Bar{Arr: []*Foobar{{I: []*Foobar1{{[]string{"A", "B"}}}}}}},
+		Foo{A: Bar{Arr: []*Foobar{{I: []*Foobar1{{[]string{"B", "A"}}}}}}})
+}
+
+func TestStructArrayInterface5(t *testing.T) {
+	type Foobar struct {
+		I []string
+	}
+	type Bar struct {
+		Arr []*Foobar
+	}
+	type Foo struct {
+		A Bar
+	}
+	ElementsMatchRec(t,
+		Foo{A: Bar{Arr: []*Foobar{{I: []string{"A", "B"}}}}},
+		Foo{A: Bar{Arr: []*Foobar{{I: []string{"B", "A"}}}}})
+}
+
+func TestStructArrayInterface6(t *testing.T) {
+	type Bar struct {
+		Arr []string
+	}
+	type Foo struct {
+		A Bar
+	}
+	ElementsMatchRec(t,
+		Foo{A: Bar{Arr: []string{"A", "B"}}},
+		Foo{A: Bar{Arr: []string{"B", "A"}}})
+}

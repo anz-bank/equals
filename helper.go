@@ -12,3 +12,12 @@ func (s *RequireFail) Errorf(format string, args ...interface{}) {
 func (s *RequireFail) FailNow() {
 	s.HasFailed = true
 }
+
+type RequireNull struct {
+}
+
+func (RequireNull) Errorf(format string, args ...interface{}) {
+}
+
+func (RequireNull) FailNow() {
+}
