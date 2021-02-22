@@ -24,6 +24,11 @@ func AssertJson(t require.TestingT, want interface{}, got interface{}) bool {
 }
 
 func ElementsMatchRec2(t require.TestingT, want interface{}, got interface{}) (equal bool) {
+	defer func() {
+		if err := recover(); err != nil {
+			equal = false
+		}
+	}()
 	w := reflect.ValueOf(want)
 	g := reflect.ValueOf(got)
 	switch w.Type().Kind() {
@@ -31,7 +36,14 @@ func ElementsMatchRec2(t require.TestingT, want interface{}, got interface{}) (e
 		return ElementsMatch(t, want, got)
 	case reflect.Map:
 		for _, e := range w.MapKeys() {
-			equal = equal || ElementsMatchRec2(t, w.MapIndex(e).Interface(), g.MapIndex(e).Interface())
+			if welem, gelem := w.MapIndex(e), g.MapIndex(e); welem.CanInterface() && gelem.CanInterface() {
+				if !ElementsMatchRec2(t, welem.Interface(), gelem.Interface()) {
+					return false
+				}
+			} else {
+				ElementsMatch(t, welem, gelem)
+			}
+			return true
 		}
 	default:
 		return AssertJson(t, want, got)
@@ -86,7 +98,8 @@ func diffLists(listA, listB interface{}) (extraA, extraB []interface{}) {
 			if visited[j] {
 				continue
 			}
-			if objectsAreEqual(bValue.Index(j).Interface(), element) {
+			element2 := bValue.Index(j).Interface()
+			if objectsAreEqual(element2, element) {
 				visited[j] = true
 				found = true
 				break
