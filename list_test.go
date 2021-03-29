@@ -4,7 +4,7 @@ import "testing"
 
 func TestListHas(t *testing.T) {
 	type Foo struct {
-		a []string
+		A []string
 	}
 	tests := []struct {
 		name    string
@@ -18,11 +18,18 @@ func TestListHas(t *testing.T) {
 			want:    true,
 		},
 		{
-			element: Foo{a: []string{"a", "b", "c"}},
-			list:    []Foo{{
-				a: []string{"a", "b", "c"},
+			element: Foo{A: []string{"a", "b", "c"}},
+			list: []Foo{{
+				A: []string{"a", "b", "c"},
 			}},
-			want:    true,
+			want: true,
+		},
+		{
+			element: Foo{A: []string{"b", "c"}},
+			list: []Foo{{
+				A: []string{"a", "b", "c"},
+			}},
+			want: false,
 		},
 	}
 	for _, tt := range tests {
