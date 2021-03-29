@@ -37,6 +37,22 @@ func isEmpty(object interface{}) bool {
 	}
 }
 
+// ListHas returns true if element is in list
+func ListHas(element, list interface{}) bool {
+	elementjson, listjson := interfaceToJson(element, list)
+
+	listslice, ok := listjson.([]interface{})
+	if !ok {
+		return false
+	}
+	for _, e := range listslice {
+		if elementsMatchRecHelper(RequireNull{}, elementjson, e) {
+			return true
+		}
+	}
+	return false
+}
+
 // diffLists diffs two arrays/slices and returns slices of elements that are only in A and only in B.
 // If some element is present multiple times, each instance is counted separately (e.g. if something is 2x in A and
 // 5x in B, it will be 0x in extraA and 3x in extraB). The order of items in both lists is ignored.
