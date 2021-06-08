@@ -68,7 +68,7 @@ func elementsMatchRecHelper(t require.TestingT, want interface{}, got interface{
 				}
 			}
 		}
-		return true
+		return w.Len() == g.Len()
 	default:
 		return AssertJson(t, want, got)
 	}
