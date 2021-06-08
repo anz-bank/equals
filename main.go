@@ -9,7 +9,11 @@ import (
 
 func ElementsMatchRec(t require.TestingT, want interface{}, got interface{}) (equal bool) {
 	var wantj, gotj = interfaceToJson(want, got)
-	return elementsMatchRecHelper(t, wantj, gotj)
+	if !elementsMatchRecHelper(t, wantj, gotj){
+		t.FailNow()
+		return false
+	}
+	return true
 }
 
 // ElementsMatch asserts that the specified listA(array, slice...) is equal to specified
