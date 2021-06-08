@@ -46,7 +46,7 @@ func ListHas(element, list interface{}) bool {
 		return false
 	}
 	for _, e := range listslice {
-		if elementsMatchRecHelper(RequireNull{}, elementjson, e) {
+		if AssertJson(RequireNull{}, e, elementjson) {
 			return true
 		}
 	}

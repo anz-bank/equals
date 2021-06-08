@@ -2,12 +2,22 @@ package equals
 
 import (
 	"bytes"
+	"fmt"
+	"reflect"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"reflect"
 )
 
 func ElementsMatchRec(t require.TestingT, want interface{}, got interface{}) (equal bool) {
+	if !ElementsMatchRec2(t, want, got){
+		assert.Fail(t, fmt.Sprintf("Not equal: %v, %v", want, got))
+		return false
+	}
+	return true
+}
+
+func ElementsMatchRec2(t require.TestingT, want interface{}, got interface{}) (equal bool) {
 	var wantj, gotj = interfaceToJson(want, got)
 	return elementsMatchRecHelper(t, wantj, gotj)
 }
@@ -75,7 +85,7 @@ func objectsAreEqual(expected, actual interface{}) bool {
 	exp, ok := expected.([]byte)
 	if !ok {
 		if !equalJson(expected, actual) {
-			return ElementsMatchRec(RequireNull{}, expected, actual)
+			return ElementsMatchRec2(RequireNull{}, expected, actual)
 		}
 		return true
 	}
